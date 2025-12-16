@@ -1,0 +1,2 @@
+# dea-c01-data-engineer-handling-kinesis-stream-duplicates-and-resharding-logic
+A resilient data engineering implementation solving "At-Least-Once" delivery challenges in Amazon Kinesis. This project demonstrates idempotent consumer patterns using KCL and DynamoDB to handle duplicates caused by producer retries (network timeouts) and stream resharding events, aligning with AWS DEA-C01 certification domains.
