@@ -28,8 +28,6 @@ resource "aws_kinesis_stream" "inventory_stream" {
     "IncomingRecords",
     "OutgoingBytes",
     "OutgoingRecords",
-    "WriteProvisionedThroughputExceeded",
-    "ReadProvisionedThroughputExceeded",
     "IteratorAgeMilliseconds"
   ]
 
@@ -169,7 +167,6 @@ resource "aws_iam_role_policy" "consumer_policy" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:CreateTable",
           "dynamodb:DescribeTable",
           "dynamodb:GetItem",
           "dynamodb:PutItem",

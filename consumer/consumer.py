@@ -94,6 +94,10 @@ class IdempotencyChecker:
                 self.duplicates_detected += 1
                 logger.warning(f"Record {record_id} is DUPLICATE - skipping")
                 return True
+            elif e.response['Error']['Code'] in ['ProvisionedThroughputExceededException', 'ThrottlingException']:
+                # Retryable error - log and raise to allow retry
+                logger.warning(f"DynamoDB throttling for {record_id}: {e}")
+                raise
             else:
                 # Other error - log and treat as new to avoid data loss
                 logger.error(f"Error checking idempotency for {record_id}: {e}")
@@ -262,13 +266,29 @@ class KinesisConsumer:
                 logger.info(f"Received record {record_id} from shard {shard_id}")
                 
                 # Check-and-Set: Check if duplicate before processing
-                if self.idempotency_checker.is_duplicate(record_id, shard_id, sequence_number):
-                    logger.info(f"Skipping duplicate record {record_id}")
-                    continue
-                
-                # Process the record (business logic)
-                if self.processor.process_record(data):
-                    processed_count += 1
+                # Retry logic for throttling exceptions
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        if self.idempotency_checker.is_duplicate(record_id, shard_id, sequence_number):
+                            logger.info(f"Skipping duplicate record {record_id}")
+                            break
+                        
+                        # Process the record (business logic)
+                        if self.processor.process_record(data):
+                            processed_count += 1
+                        break
+                    except ClientError as e:
+                        if e.response['Error']['Code'] in ['ProvisionedThroughputExceededException', 'ThrottlingException']:
+                            if attempt < max_retries - 1:
+                                wait_time = (2 ** attempt) * 0.1  # Exponential backoff
+                                logger.warning(f"DynamoDB throttled, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                                time.sleep(wait_time)
+                            else:
+                                logger.error(f"Failed to check idempotency after {max_retries} attempts")
+                                raise
+                        else:
+                            raise
                     
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON in record: {e}")

@@ -274,7 +274,11 @@ class KinesisReshardManager:
             
         except ClientError as e:
             if 'ValidationException' in str(e):
-                logger.error("Stream may be in ON_DEMAND mode. Shard count updates are not available for ON_DEMAND streams.")
+                logger.error(
+                    "Stream is in ON_DEMAND mode. Manual resharding operations require PROVISIONED mode. "
+                    "Convert the stream using: aws kinesis update-stream-mode "
+                    "--stream-arn <stream-arn> --stream-mode-details StreamMode=PROVISIONED"
+                )
             else:
                 logger.error(f"Error updating shard count: {e}")
             return False
