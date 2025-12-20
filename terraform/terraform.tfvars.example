@@ -1,0 +1,10 @@
+# Example Terraform variables
+# Copy this file to terraform.tfvars and adjust values as needed
+
+aws_region            = "us-east-1"
+environment           = "dev"
+kinesis_stream_name   = "inventory-stream"
+retention_period_hours = 24
+dynamodb_table_name   = "kinesis-idempotency-table"
+enable_ttl            = true
+enable_pitr           = true
